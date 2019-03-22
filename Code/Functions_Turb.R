@@ -133,9 +133,14 @@ model.set.up.no.worms.turb = function(model.name = NULL){
     
     t.sz[which(t.sz == 2287)] = NA
     
-    fish_sz = t.sz - mean(t.sz, na.rm = T) 
+    library(arm)
+    fish_sz = scale(t.sz, center = T, scale = T)
+    
+    # fish_sz = t.sz - mean(t.sz, na.rm = T) 
     
     fish_sz[is.na(fish_sz)] = 0
+    
+    fish_sz = fish_sz[,1]
     
     #-----------------------------------------------------------------------------#
     # need emp_a (drift prop for each taxa across all the data)
@@ -342,8 +347,7 @@ model.set.up.no.worms.turb = function(model.name = NULL){
     }
     #-----------------------------------------------------------------------------#
     # variables specific to the turbidity model
-    d.turb = read.table(file = "U:/Desktop/Fish_Git/DCTurbidity/Data/NO_Turb_ts_summary.csv",
-                        header = T, sep = ",")
+    d.turb = read.table(paste0(getwd(), "/Data/NO_Turb_ts_summary.txt"), sep = "\t", header = TRUE)
     
     # make sure the order is the same 
     d.turb2 = d.turb[match(paste(y.tmp[,1], y.tmp[,2]),paste(d.turb[,1], d.turb[,2])),]
@@ -352,36 +356,13 @@ model.set.up.no.worms.turb = function(model.name = NULL){
     
     # identical(d.turb2[,1:2], y.tmp[,1:2]) # not sure why this is? 
     identical(d.turb2[,2], y.tmp[,2])
-    
     identical(d.turb2[,1], y.tmp[,1])
     
-    # library(arm)
-    # turb = log(d.turb2$ts.mean)
-    # turb = rescale(d.turb2$ts.mean)
     tmp.turb = log(d.turb2$ts.mean)
     turb = tmp.turb - mean(tmp.turb)
     
     
-    Ns = 5
-    Nt = 12
-    trip_site = seq(1,Nst,1)
-    Nsz = 20
-    
     #-----------------------------------------------------------------------------#
-    # data.in = list(Nspsz = Nspsz, Nst = Nst, Nsp = Nsp, Nind = Nind,
-    #                sp = spp, sp_idx2 = spp2, spsz = spsz,
-    #                a = A, w_a = w.a, y = y.in, w = w.in,
-    #                idx = idx, idx2 = idx2, idx_first = idx_first, not_first = not_first,
-    #                idx_ts_ind = idx_ts_ind,
-    #                alpha = alpha, a_Nsz = upper,   
-    #                X = X, 
-    #                emp_a = emp_a_2,
-    #                sz = measure,  u_idx = u.idx, u_idx2 = u.idx2,
-    #                avg_log_len = avg.log.measure, 
-    #                fish_sz = fish_sz,
-    #                turb = turb, Ns = Ns, Nt = Nt, trip_site = trip_site, u_Nsz = Nsz)  
-    
-    
     data.in = list(Nspsz = Nspsz, Nst = Nst, Nsp = Nsp, Nind = Nind,
                    sp = spp, sp_idx2 = spp2,# spsz = spsz,
                    a = A, w_a = w.a, y = y.in, w = w.in,
@@ -391,9 +372,8 @@ model.set.up.no.worms.turb = function(model.name = NULL){
                    X = X, 
                    #  emp_a = emp_a_2,
                    sz = measure,  u_idx = u.idx, u_idx2 = u.idx2,
-                   # avg_log_len = avg.log.measure, 
-                   # fish_sz = fish_sz,
-                   turb = turb, Ns = Ns, Nt = Nt, trip_site = trip_site, u_Nsz = Nsz)  
+                   avg_log_len = avg.log.measure,
+                   turb = turb, fish_sz = fish_sz)  
     
     return(data.in)  
   }
