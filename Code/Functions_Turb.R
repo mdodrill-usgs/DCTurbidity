@@ -350,17 +350,18 @@ model.set.up.no.worms.turb = function(model.name = NULL){
     d.turb = read.table(paste0(getwd(), "/Data/NO_Turb_ts_summary.txt"), sep = "\t", header = TRUE)
     
     # make sure the order is the same 
-    d.turb2 = d.turb[match(paste(y.tmp[,1], y.tmp[,2]),paste(d.turb[,1], d.turb[,2])),]
+    turb.ts = paste(d.turb[,1], d.turb[,2])
     
-    d.turb2$trip = factor(d.turb2$trip)
+    # cut out trips to match the diet
+    d.turb2 = d.turb[match(diet.ts, turb.ts),]
     
-    # identical(d.turb2[,1:2], y.tmp[,1:2]) # not sure why this is? 
-    identical(d.turb2[,2], y.tmp[,2])
-    identical(d.turb2[,1], y.tmp[,1])
+    tmp.turb = scale(log(d.turb2$ts.mean), center = T, scale = T)
+      
+    tmp.turb.2 = tmp.turb[,1] 
     
-    tmp.turb = log(d.turb2$ts.mean)
-    turb = tmp.turb - mean(tmp.turb)
-    
+    # expand to match the ts order of diet (at the individual level, this is so
+    # I can use the .* operator in stan)
+    turb = tmp.turb.2[match(paste(y.tmp[,1], y.tmp[,2]), paste(d.turb2[,1], d.turb2[,2]))]
     
     #-----------------------------------------------------------------------------#
     data.in = list(Nspsz = Nspsz, Nst = Nst, Nsp = Nsp, Nind = Nind,
