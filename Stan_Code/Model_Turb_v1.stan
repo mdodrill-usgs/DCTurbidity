@@ -57,7 +57,9 @@ parameters {
   vector[Nsp-1] beta_sp_turb;
   vector[Nsp] beta_sz_turb;
   vector[Nsp] beta_f_sz_p_sz;
+  vector[Nsp] beta_f_sz_sz;
   vector[Nsp - 1] beta_f_sz_p_sp;
+  vector[Nsp - 1] beta_f_sz_sp;
 }
 
 transformed parameters {
@@ -118,12 +120,12 @@ transformed parameters {
   
   for(k in 1:Nsp - 1){
     fix_beta_sp[,k] = mu_sp[k] + ts_sp_eff[idx_ts_ind[],k] + beta_sp_turb[k] * turb + 
-                      beta_f_sz_p_sp[k] * turb .* fish_sz;
+                      beta_f_sz_p_sp[k] * turb .* fish_sz + beta_f_sz_sp[k] * fish_sz;
   }
   
   for(k in 1:Nsp){
       beta_sz[,k] = mu_sz[k] + ts_sz_eff[idx_ts_ind[],k] + beta_sz_turb[k] * turb +
-                    beta_f_sz_p_sz[k] * turb .* fish_sz;
+                    beta_f_sz_p_sz[k] * turb .* fish_sz + beta_f_sz_sz[k] * fish_sz;
    }
   
   for(i in 1:Nind){
@@ -173,7 +175,9 @@ model {
   
    // diet ////////////////////////////////////////////
    beta_f_sz_p_sz ~ normal(0,10);
+   beta_f_sz_sz ~ normal(0,10);
    beta_f_sz_p_sp ~ normal(0,10);
+   beta_f_sz_sp ~ normal(0,10);
    mu_sp ~ normal(0, 10);
    
    beta_sp_turb ~ normal(0, 10);
@@ -208,6 +212,9 @@ generated quantities {
   
   vector[Nsp] beta_f_sz_p_sp_all;
   vector[Nsp] beta_f_sz_p_sp_tmp;
+  
+  vector[Nsp] beta_f_sz_sp_all;
+  vector[Nsp] beta_f_sz_sp_tmp;
 
   // matrix[Nst, Nspsz] tmp_st;
   // matrix[Nst, Nsp] tmp_st_sum;
@@ -249,6 +256,16 @@ generated quantities {
   
   for(i in 1:Nsp){
     beta_f_sz_p_sp_all[i] = beta_f_sz_p_sp_tmp[i] - mean(beta_f_sz_p_sp_tmp[]);
+  }
+  /////////////////////////////////
+  beta_f_sz_sp_tmp[Nsp] = 0.0;
+  
+  for(i in 1:Nsp-1){
+    beta_f_sz_sp_tmp[i] = beta_f_sz_sp[i];
+  }
+  
+  for(i in 1:Nsp){
+    beta_f_sz_sp_all[i] = beta_f_sz_sp_tmp[i] - mean(beta_f_sz_sp_tmp[]);
   }
 
   // ///////////////////////////////////
