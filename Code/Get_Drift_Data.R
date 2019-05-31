@@ -61,13 +61,25 @@ ltl.samp$no.site = ifelse(ltl.samp$RiverMile <= 0, 'I',
 ltl.samp.2 = ltl.samp[which(ltl.samp$no.site %in% c("I", "II", "III", "IVa", "IVb")),]
 
 #--------------------------------------
-# only the total mass
-
+# need to cut out the worms here...
 # counts...
-# drift.dat$Specimens$CountTotal = rowSums(drift.dat$Specimens[,3:23])
+drift.dat.count = drift.dat$Specimens
+
+drift.dat.count.2 = drift.dat.count[which(drift.dat.count$SpeciesID != "OLIG"),]
+
+drift.dat.count.2$CountTotal = rowSums(drift.dat.count.2[,3:23])
+
+
+# need to cut out the worms here...
 # mass...
-drift.dat$Biomass$MassTotal = rowSums(drift.dat$Specimens[,3:23])
-ltl.specs = drift.dat$Biomass[,c(1,2,24)]
+drift.dat.mass = drift.dat$Biomass
+
+drift.dat.mass.2 = drift.dat.mass[which(drift.dat.mass$SpeciesID != "OLIG"),]
+
+drift.dat.mass.2$MassTotal = rowSums(drift.dat.mass.2[,3:23])
+
+
+ltl.specs = drift.dat.mass.2[,c(1,2,24)]
 
 #--------------------------------------
 # merge the sample table with the specimen counts
@@ -76,20 +88,20 @@ no.drift.dat = left_join(ltl.samp.2, ltl.specs, by = "BarcodeID")
 
 no.drift.dat$SpeciesID = as.character(no.drift.dat$SpeciesID)
 
+no.drift.dat$SpeciesID.2 = ifelse(no.drift.dat$SpeciesID == "CHIP", "CHIA", no.drift.dat$SpeciesID)
+no.drift.dat$SpeciesID.2 = ifelse(no.drift.dat$SpeciesID == "SIMP", "SIMA", no.drift.dat$SpeciesID.2)
+
 #--------------------------------------
-# should it be, sum across taxa for a sample, then average? (this gives the same avg mass as below)
+# sum up the life-stage mass estimates
+t.dat = dplyr::select(no.drift.dat, ID = BarcodeID, no.trip = TripID, no.site, taxa = SpeciesID.2, mass = MassTotal) %>% 
+  filter(no.site %in% c("I", "II", "III", "IVa", "IVb")) %>%
+  group_by(ID, no.trip, no.site, taxa) %>%
+  summarise(mass.2 = sum(mass))
 
 # get the avg. mass per trip, site, & taxa
-t.dat = dplyr::select(no.drift.dat, no.trip = TripID, no.site,
-                      taxa = SpeciesID, mass = MassTotal) %>%
-  filter(no.site %in% c("I", "II", "III", "IVa", "IVb")) %>%
-  group_by(no.trip, no.site, taxa) %>%
-  summarise(avg.mass = mean(mass))
-
-# sum across taxa
-dat3 = group_by(t.dat, no.trip, no.site) %>%
-  summarise(drift.mass = sum(avg.mass))
+t.dat.2 = group_by(t.dat, no.trip, no.site, taxa) %>% 
+          summarise(avg.mass = mean(mass.2))
 
 
 #-----------------------------------------------------------------------------#
-# write.table(dat3, file = "Drift_Data_2019_05_28_mass.txt", row.names = F, sep = "\t")
+write.table(t.dat.2, file = "Drift_Data_2019_05_31_mass_by_taxa.txt", row.names = F, sep = "\t")
