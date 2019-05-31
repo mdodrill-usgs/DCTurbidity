@@ -364,6 +364,148 @@ model.set.up.no.worms.turb = function(model.name = NULL){
     turb = tmp.turb.2[match(paste(y.tmp[,1], y.tmp[,2]), paste(d.turb2[,1], d.turb2[,2]))]
     
     #-----------------------------------------------------------------------------#
+    # # Drift Data  (the mass is in mg/m3)
+    # d.drift = read.table(paste0(getwd(), "/Data/Drift_Data_2019_05_28_mass.txt"),
+    #                      sep = "\t", header = TRUE)
+    # drift.ts = paste(d.drift[,1], d.drift[,2])
+    # d.drift.2 = d.drift[match(diet.ts, drift.ts),]
+    # 
+    # tmp.drift = scale(d.drift.2$drift.mass, center = T, scale = T)
+    # 
+    # tmp.drift.2 = tmp.drift[,1] # convert from a matrix to vector
+    # 
+    # # expand to match the ts order of diet (at the individual level, this is so
+    # # I can use the .* operator in stan)
+    # mass = tmp.drift.2[match(paste(y.tmp[,1], y.tmp[,2]), paste(d.drift.2[,1], d.drift.2[,2]))]
+    # 
+    #-----------------------------------------------------------------------------#
+    d.drift = read.table(paste0(getwd(), "/Data/Drift_Data_2019_05_31_mass_by_taxa.txt"),
+                         sep = "\t", header = TRUE)
+    
+    fkn.key = data.frame(num = c(1:6),
+                         abrev = c("NZMS", "GAMM", "SIMA", "SIML", "CHIA", "CHIL"))
+     # STOPPED HERE.... 
+    for(i in 1:6){
+      # sub = d.drift[d.drift$taxa == fkn.key[i,2],]
+      sub.ts = paste(sub[,1], sub[,2], sep = " ") 
+      
+      # dat.out[[i]] = sub[match(diet.ts, sub.ts),4]
+      sub.tmp = sub[match(diet.ts, sub.ts),4]
+      sub.tmp[is.na(sub.tmp)] = 0
+      
+      # dat.out[[i]] = sub.tmp - mean(sub.tmp)  # center on the mean
+      sub.tmp.tmp = scale(sub.tmp, center = T, scale = T)
+      
+      dat.out[[i]] = sub.tmp.tmp[match(paste(y.tmp[,1], y.tmp[,2]), sub.ts)]
+    }
+    
+    
+    
+    drift.ts = paste(d.drift[,1], d.drift[,2])
+    d.drift.2 = d.drift[match(diet.ts, drift.ts),]
+
+    tmp.drift = scale(d.drift.2$drift.mass, center = T, scale = T)
+
+    tmp.drift.2 = tmp.drift[,1] # convert from a matrix to vector
+
+    # expand to match the ts order of diet (at the individual level, this is so
+    # I can use the .* operator in stan)
+    mass = tmp.drift.2[match(paste(y.tmp[,1], y.tmp[,2]), paste(d.drift.2[,1], d.drift.2[,2]))]
+    
+    #-----------------------------------------------------------------------------#
+    # RBT density 
+    d.den = read.table(paste0(getwd(), "/Data/RBT_Density.txt"),
+                         sep = "\t", header = TRUE)
+    
+    d.den.ts = paste(d.den[,2], d.den[,1])
+    
+    d.den.2 = d.den[match(diet.ts, d.den.ts),]
+    
+    tmp.den = scale(d.den.2$density, center = T, scale = T)
+    
+    tmp.den.2 = tmp.den[,1] # convert from a matrix to vector
+    
+    trout = tmp.den.2[match(paste(y.tmp[,1], y.tmp[,2]), paste(d.den.2[,2], d.den.2[,1]))]
+    #-----------------------------------------------------------------------------#
+    # # add in a covariate - prey concentration, overall not by taxa
+    # # version b has 0's and the both levels of depth integrated
+    # d.dat = read.csv(paste0(getwd(), "/Data/Drift_data_2019_03_19b.csv"), stringsAsFactors = FALSE)
+    # 
+    # # for the turbidity/this version, cut out the worms
+    # 
+    # d.dat.tmp = d.dat[which(d.dat$taxa != "Worms"),]
+    # 
+    # d.keep = c("DriftSampleID", "new.name", "new.Rtot", "TripID", "site")
+    # d.dat.2 = d.dat.tmp[,which(names(d.dat.tmp) %in% d.keep)]
+    # 
+    # # d.dat.3 = group_by(d.dat.2, TripID, site, new.name) %>% 
+    # #           summarise(mean = mean(new.Rtot)) %>%
+    # #           ungroup() %>%
+    # #           as.data.frame()
+    # 
+    # # for each sample, sum to get total concentration acrosss taxa
+    # d.tmp.2 = group_by(d.dat.2, DriftSampleID, TripID, site) %>% 
+    #   summarise(sum.Rtot = sum(new.Rtot))
+    # # get the mean conc. for each trip & site
+    # d.dat.3 = group_by(d.tmp.2, TripID, site) %>% 
+    #   summarise(mean = mean(sum.Rtot))
+    # 
+    # 
+    # dat.ts = paste(d.dat.3$TripID, d.dat.3$site)
+    # 
+    # out = d.dat.3[match(diet.ts, dat.ts),]
+    # 
+    # tmp.conc = scale(out$mean, center = T, scale = T)
+    # 
+    # conc = tmp.conc[match(paste(y.tmp[,1], y.tmp[,2]), paste(out[,1], out[,2]))]
+    #-----------------------------------------------------------------------------#
+    # add in a covariate - prey concentration, for each taxa...
+    # version b has 0's and the both levels of depth integrated
+    d.dat = read.csv(paste0(getwd(), "/Data/Drift_data_2019_03_19b.csv"), stringsAsFactors = FALSE)
+    
+    # take out the worms for this version
+    d.dat.tmp = d.dat[which(d.dat$taxa != "Worms"),]
+    
+    d.keep = c("new.name", "new.Rtot", "TripID", "site")
+    d.dat.2 = d.dat.tmp[,which(names(d.dat.tmp) %in% d.keep)]
+    
+    d.dat.3 = group_by(d.dat.2, TripID, site, new.name) %>% 
+      summarise(mean = mean(new.Rtot)) %>%
+      ungroup() %>%
+      as.data.frame()
+    
+    
+    # dat.ts = paste(d.dat.3[,1], d.dat.3[,2], sep = " ") 
+    # as.matrix(tmp.A[match(diet.ts, drift.ts),3:ncol(tmp.A)])
+    
+    # name.key.7 = c(2,4,5,7,19,21,1)
+    name.key.7 = c(2,4,5,7,19,21) # no worms
+    
+    dat.out = list()
+    for(i in 1:length(name.key.7)){
+      sub = d.dat.3[d.dat.3$new.name == name.key.7[i],]
+      sub.ts = paste(sub[,1], sub[,2], sep = " ") 
+      
+      # dat.out[[i]] = sub[match(diet.ts, sub.ts),4]
+      sub.tmp = sub[match(diet.ts, sub.ts),4]
+      sub.tmp[is.na(sub.tmp)] = 0
+      
+      # dat.out[[i]] = sub.tmp - mean(sub.tmp)  # center on the mean
+      sub.tmp.tmp = scale(sub.tmp, center = T, scale = T)
+      
+      dat.out[[i]] = sub.tmp.tmp[match(paste(y.tmp[,1], y.tmp[,2]), sub.ts)]
+    }
+    
+    d.dat.4 = do.call(cbind, dat.out) 
+    
+    # there are some non matches that result in NA, I think these are from when
+    # a taxa doesn't occur in a given site, trip (I hope ;)
+    d.dat.4[is.na(d.dat.4)] = 0
+    
+    conc = d.dat.4
+    
+    #-----------------------------------------------------------------------------#
+    
     data.in = list(Nspsz = Nspsz, Nst = Nst, Nsp = Nsp, Nind = Nind,
                    sp = spp, sp_idx2 = spp2,# spsz = spsz,
                    a = A, w_a = w.a, y = y.in, w = w.in,
@@ -374,7 +516,8 @@ model.set.up.no.worms.turb = function(model.name = NULL){
                    #  emp_a = emp_a_2,
                    sz = measure,  u_idx = u.idx, u_idx2 = u.idx2,
                    avg_log_len = avg.log.measure,
-                   turb = turb, fish_sz = fish_sz)  
+                   turb = turb, mass = mass, trout = trout, conc = conc,
+                   fish_sz = fish_sz)  
     
     return(data.in)  
   }
