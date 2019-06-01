@@ -384,33 +384,30 @@ model.set.up.no.worms.turb = function(model.name = NULL){
     
     fkn.key = data.frame(num = c(1:6),
                          abrev = c("NZMS", "GAMM", "SIMA", "SIML", "CHIA", "CHIL"))
+    
+    dat.out = list()
      # STOPPED HERE.... 
     for(i in 1:6){
-      # sub = d.drift[d.drift$taxa == fkn.key[i,2],]
+      sub = d.drift[d.drift$taxa == fkn.key[i,2],]
       sub.ts = paste(sub[,1], sub[,2], sep = " ") 
       
-      # dat.out[[i]] = sub[match(diet.ts, sub.ts),4]
       sub.tmp = sub[match(diet.ts, sub.ts),4]
       sub.tmp[is.na(sub.tmp)] = 0
       
-      # dat.out[[i]] = sub.tmp - mean(sub.tmp)  # center on the mean
       sub.tmp.tmp = scale(sub.tmp, center = T, scale = T)
       
       dat.out[[i]] = sub.tmp.tmp[match(paste(y.tmp[,1], y.tmp[,2]), sub.ts)]
     }
     
+    d.dat.7 = do.call(cbind, dat.out) 
+    
+    # there are some non matches that result in NA, I think these are from when
+    # a taxa doesn't occur in a given site, trip (I hope ;)
+    d.dat.7[is.na(d.dat.7)] = 0
+    
+    mass = d.dat.7
     
     
-    drift.ts = paste(d.drift[,1], d.drift[,2])
-    d.drift.2 = d.drift[match(diet.ts, drift.ts),]
-
-    tmp.drift = scale(d.drift.2$drift.mass, center = T, scale = T)
-
-    tmp.drift.2 = tmp.drift[,1] # convert from a matrix to vector
-
-    # expand to match the ts order of diet (at the individual level, this is so
-    # I can use the .* operator in stan)
-    mass = tmp.drift.2[match(paste(y.tmp[,1], y.tmp[,2]), paste(d.drift.2[,1], d.drift.2[,2]))]
     
     #-----------------------------------------------------------------------------#
     # RBT density 
