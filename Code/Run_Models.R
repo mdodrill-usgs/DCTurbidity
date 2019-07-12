@@ -36,12 +36,13 @@ list2env(data.in, globalenv())
 params <- c("mu_sp_all", "mu_sz",
             "beta_sp_all", "beta_sp_turb_all", "beta_sz_turb", "beta_sz",
             "ts_sp_eff", "ts_sz_eff",
-            "beta_f_sz_p_sp", "beta_f_sz_p_sz", "beta_f_sz_p_sp_all")
+            "beta_f_sz_p_sp", "beta_f_sz_p_sz", "beta_f_sz_p_sp_all",
+            "beta_f_sz_sp", "beta_f_sz_sz", "beta_f_sz_sp_all")
 
 ## MCMC settings
-ni <- 100   # 100 ~ 54000 sec
+ni <- 500   # 500iter ~ 7.7h, with new tuning ~5.4h
 nt <- 1
-nb <- 50
+nb <- 250
 nc <- 3
 
 # m <- stan_model(paste0(getwd(), "/Stan_Code/",'Model_Turb_V1.stan'))
@@ -53,11 +54,11 @@ fit <- stan("Model_Turb_v1.stan", data = data.in,
             pars = params,
             # init = inits,
             # control = list(adapt_delta = .9),
-            # control = list(max_treedepth = 14),
-            control = list(max_treedepth = 15, adapt_delta = .925),
+            control = list(max_treedepth = 12),
+            # control = list(max_treedepth = 15, adapt_delta = .925),
             chains = nc, thin = nt, iter = ni, warmup = nb)
 
-save.image("U:/Desktop/Fish_Git/DCTurbidity/working_runs/Model_Turb_v1_100iter.RData")
+save.image("U:/Desktop/Fish_Git/DCTurbidity/working_runs/Model_Turb_v1_Length_more_parms_500iter.RData")
 
 
 #-----------------------------------------------------------------------------#
