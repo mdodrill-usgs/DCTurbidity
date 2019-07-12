@@ -363,6 +363,16 @@ model.set.up.no.worms.turb = function(model.name = NULL){
     # I can use the .* operator in stan)
     turb = tmp.turb.2[match(paste(y.tmp[,1], y.tmp[,2]), paste(d.turb2[,1], d.turb2[,2]))]
     
+    
+    # Rosenfeld and Taylor 2003
+    tmp.turb.pmr = 100 - (44.8 * log10(d.turb2$ts.mean + 1))
+    
+    tmp.turb.pmr = ifelse(tmp.turb.pmr < 0, 0, tmp.turb.pmr)
+    
+    tmp.turb.pmr.2 = scale(tmp.turb.pmr, center = T, scale = T)
+    
+    turb.pmr = tmp.turb.pmr.2[,1]
+    
     #-----------------------------------------------------------------------------#
     # # Drift Data  (the mass is in mg/m3)
     # d.drift = read.table(paste0(getwd(), "/Data/Drift_Data_2019_05_28_mass.txt"),
@@ -386,7 +396,7 @@ model.set.up.no.worms.turb = function(model.name = NULL){
                          abrev = c("NZMS", "GAMM", "SIMA", "SIML", "CHIA", "CHIL"))
     
     dat.out = list()
-     # STOPPED HERE.... 
+  
     for(i in 1:6){
       sub = d.drift[d.drift$taxa == fkn.key[i,2],]
       sub.ts = paste(sub[,1], sub[,2], sep = " ") 
@@ -501,6 +511,20 @@ model.set.up.no.worms.turb = function(model.name = NULL){
     
     conc = d.dat.4
     
+    
+    #-----------------------------------------------------------------------------#
+    # Competition index
+    NO_trips = c('GC20120419','GC20120705','GC20120913','GC20130110',
+                 'GC20130404','GC20130625','GC20130912','GC20140109',
+                 'GC20140403','GC20140626','GC20140911','GC20150108')
+    
+    c.dat = read.csv(paste0(getwd(), "/Data/Comp_Idx.csv"), stringsAsFactors = FALSE)
+    
+    c.dat$no.trip = rep(NO_trips, 5)
+    
+    c.dat.2 = c.dat[match(diet.ts, paste(c.dat[,4], c.dat[,1])),]
+    
+    comp = as.vector(scale(c.dat.2$Comp, center = T, scale = T))
     #-----------------------------------------------------------------------------#
     
     data.in = list(Nspsz = Nspsz, Nst = Nst, Nsp = Nsp, Nind = Nind,
@@ -514,7 +538,8 @@ model.set.up.no.worms.turb = function(model.name = NULL){
                    sz = measure,  u_idx = u.idx, u_idx2 = u.idx2,
                    avg_log_len = avg.log.measure,
                    turb = turb, mass = mass, trout = trout, conc = conc,
-                   fish_sz = fish_sz)  
+                   fish_sz = fish_sz,
+                   turb_pmr = turb.pmr, comp = comp)  
     
     return(data.in)  
   }
