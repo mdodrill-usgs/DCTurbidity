@@ -41,7 +41,7 @@ data {
   // vector[Nind] mass;      // drift mass, centered & scaled, expanded to match individual diet dims
   // matrix[Nind, Nsp] mass;      // drift mass, centered & scaled, expanded to match individual diet dims
   vector[Nind] mass;      // drift mass, centered & scaled, expanded to match individual diet dims
-  matrix[Nind, Nsp] conc;      // drift mass, centered & scaled, expanded to match individual diet dims
+  // matrix[Nind, Nsp] conc;      // drift mass, centered & scaled, expanded to match individual diet dims
   
   vector[Nst] comp;
   vector[Nst] turb_pmr;
@@ -59,7 +59,6 @@ parameters {
   vector[Nsp-1] mu_sp;
   real mu_sz;
   real beta_f_sz;
-  real beta_f_sz_int;
   real beta_trout_sp;
   real beta_mass_sp;
   real beta_mass_sz;
@@ -150,7 +149,6 @@ transformed parameters {
     for(k in 1:Nspsz){
       beta1[i,k] = dot_product(fix_beta_sp[i,], X[k,]) + 
                    dot_product(beta_sz[i,], X[k,]) * (log(sz[k]) - avg_log_len) +
-                   beta_f_sz_int * fish_sz[i] +
                    beta_f_sz * fish_sz[i] * (log(sz[k]) - avg_log_len) +
                    spsz_eta[k] + spsz_ind_eta[i,k] + spsz_st_eta[idx_ts_ind[i],k];
     }  
@@ -196,7 +194,6 @@ model {
   
    // diet ////////////////////////////////////////////
    beta_f_sz ~ normal(0,10);
-   beta_f_sz_int ~ normal(0,10);
    mu_sp ~ normal(0,10);
    
    beta_trout_sp ~ normal(0,2);  //Kinda tight priors here...
@@ -212,7 +209,8 @@ model {
    spsz_eta ~ normal(0, sig_spsz);
    sig_spsz ~ normal(0,10);
    
-   mu_sz ~ normal(0, 10);
+   // mu_sz ~ normal(0, 10);
+   mu_sz ~ normal(0, 5);
    
    sig_spsz_st ~ normal(0, 10);
    
@@ -322,7 +320,7 @@ generated quantities {
                       // beta_mass_sp * mass +
                       beta_turb_pmr_sp * turb_pmr[idx_ts_ind]);
                       
-    tmp_tmp_VRE_sp_not_trout[,k] = mu_sp[k] * 
+    tmp_tmp_VRE_sp_not_turb_pmr[,k] = mu_sp[k] * 
                       exp(beta_trout_sp * trout +
                       beta_mass_sp * mass);// +
                       // beta_turb_pmr_sp * turb_pmr[idx_ts_ind]);
@@ -332,19 +330,16 @@ generated quantities {
     for(k in 1:Nspsz){
       tmp_VRE_sp_not_trout[i,k] = dot_product(tmp_tmp_VRE_sp_not_trout[i,], X[k,]) +
                    dot_product(beta_sz[i,], X[k,]) * (log(sz[k]) - avg_log_len) +
-                   beta_f_sz_int * fish_sz[i] +
                    beta_f_sz * fish_sz[i] * (log(sz[k]) - avg_log_len) +
                    spsz_eta[k] + spsz_ind_eta[i,k] + spsz_st_eta[idx_ts_ind[i],k];
 
       tmp_VRE_sp_not_mass[i,k] = dot_product(tmp_tmp_VRE_sp_not_mass[i,], X[k,]) +
                    dot_product(beta_sz[i,], X[k,]) * (log(sz[k]) - avg_log_len) +
-                   beta_f_sz_int * fish_sz[i] +
                    beta_f_sz * fish_sz[i] * (log(sz[k]) - avg_log_len) +
                    spsz_eta[k] + spsz_ind_eta[i,k] + spsz_st_eta[idx_ts_ind[i],k];
 
       tmp_VRE_sp_not_turb_pmr[i,k] = dot_product(tmp_tmp_VRE_sp_not_turb_pmr[i,], X[k,]) +
                    dot_product(beta_sz[i,], X[k,]) * (log(sz[k]) - avg_log_len) +
-                   beta_f_sz_int * fish_sz[i] +
                    beta_f_sz * fish_sz[i] * (log(sz[k]) - avg_log_len) +
                    spsz_eta[k] + spsz_ind_eta[i,k] + spsz_st_eta[idx_ts_ind[i],k];
     }
@@ -352,7 +347,7 @@ generated quantities {
 
   VRE_sp_not_trout = variance(tmp_VRE_sp_not_trout[]);
   VRE_sp_not_mass = variance(tmp_VRE_sp_not_mass[]);
-  VRE_sp_not_turb_pmr = variance(tmp_tmp_VRE_sp_not_turb_pmr[]);
+  VRE_sp_not_turb_pmr = variance(tmp_VRE_sp_not_turb_pmr[]);
 
   // for the size portion of the model...
   
@@ -378,19 +373,16 @@ generated quantities {
     for(k in 1:Nspsz){
       tmp_VRE_sz_not_trout[i,k] = dot_product(fix_beta_sp[i,], X[k,]) +
                    dot_product(tmp_tmp_VRE_sz_not_trout[i,], X[k,]) * (log(sz[k]) - avg_log_len) +
-                   beta_f_sz_int * fish_sz[i] +
                    beta_f_sz * fish_sz[i] * (log(sz[k]) - avg_log_len) +
                    spsz_eta[k] + spsz_ind_eta[i,k] + spsz_st_eta[idx_ts_ind[i],k];
 
       tmp_VRE_sz_not_mass[i,k] = dot_product(fix_beta_sp[i,], X[k,]) +
                    dot_product(tmp_tmp_VRE_sz_not_mass[i,], X[k,]) * (log(sz[k]) - avg_log_len) +
-                   beta_f_sz_int * fish_sz[i] +
                    beta_f_sz * fish_sz[i] * (log(sz[k]) - avg_log_len) +
                    spsz_eta[k] + spsz_ind_eta[i,k] + spsz_st_eta[idx_ts_ind[i],k];
 
       tmp_VRE_sz_not_turb_pmr[i,k] = dot_product(fix_beta_sp[i,], X[k,]) +
                    dot_product(tmp_tmp_VRE_sz_not_turb_pmr[i,], X[k,]) * (log(sz[k]) - avg_log_len) +
-                   beta_f_sz_int * fish_sz[i] +
                    beta_f_sz * fish_sz[i] * (log(sz[k]) - avg_log_len) +
                    spsz_eta[k] + spsz_ind_eta[i,k] + spsz_st_eta[idx_ts_ind[i],k];
     }
