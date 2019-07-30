@@ -13,7 +13,7 @@
 ###############################################################################
 
 #-----------------------------------------------------------------------------#
-model.set.up.no.worms.turb = function(model.name = NULL){
+model.set.up.no.worms.turb = function(model.name = NULL, mass.by.sp = FALSE){
   #-----------------------------------------------------------------------------#
   # read in the drift data
   
@@ -141,6 +141,16 @@ model.set.up.no.worms.turb = function(model.name = NULL){
     fish_sz[is.na(fish_sz)] = 0
     
     fish_sz = fish_sz[,1]
+    
+    # avg fish size per site and trip
+    fish_tmp = dplyr::select(y.tmp, trip, site, forklength) %>% 
+               group_by(trip, site) %>% 
+               summarise(mu_forklength = mean(forklength))
+    
+    tmp_fish_sz_st = scale(fish_tmp$mu_forklength, center = T, scale = T) 
+    tmp_fish_sz_st[is.na(tmp_fish_sz_st)] = 0
+    
+    fish_sz_st = tmp_fish_sz_st[,1]
     
     #-----------------------------------------------------------------------------#
     # need emp_a (drift prop for each taxa across all the data)
@@ -390,34 +400,54 @@ model.set.up.no.worms.turb = function(model.name = NULL){
     # 
     #-----------------------------------------------------------------------------#
     d.drift = read.table(paste0(getwd(), "/Data/Drift_Data_2019_05_31_mass_by_taxa.txt"),
-                         sep = "\t", header = TRUE)
+                         sep = "\t", header = TRUE, stringsAsFactors = FALSE)
     
     fkn.key = data.frame(num = c(1:6),
                          abrev = c("NZMS", "GAMM", "SIMA", "SIML", "CHIA", "CHIL"))
     
     dat.out = list()
-  
-    for(i in 1:6){
-      sub = d.drift[d.drift$taxa == fkn.key[i,2],]
-      sub.ts = paste(sub[,1], sub[,2], sep = " ") 
+    if(mass.by.sp == TRUE){
+      for(i in 1:6){
+        sub = d.drift[d.drift$taxa == fkn.key[i,2],]
+        sub.ts = paste(sub[,1], sub[,2], sep = " ") 
+        
+        sub.tmp = sub[match(diet.ts, sub.ts),4]
+        sub.tmp[is.na(sub.tmp)] = 0
+        
+        sub.tmp.tmp = scale(sub.tmp, center = T, scale = T)
+        
+        dat.out[[i]] = sub.tmp.tmp[match(paste(y.tmp[,1], y.tmp[,2]), sub.ts)]
+      }
       
-      sub.tmp = sub[match(diet.ts, sub.ts),4]
-      sub.tmp[is.na(sub.tmp)] = 0
+      d.dat.7 = do.call(cbind, dat.out) 
+      
+      # there are some non matches that result in NA, I think these are from when
+      # a taxa doesn't occur in a given site, trip (I hope ;)
+      d.dat.7[is.na(d.dat.7)] = 0
+      
+      mass = d.dat.7  
+    } else {
+      tmpp = group_by(d.drift, no.trip, no.site) %>% 
+        summarize(tot.avg.mass = sum(avg.mass)) %>% 
+        ungroup()
+      
+      sub.ts = paste(tmpp$no.trip, tmpp$no.site, sep = " ")
+      
+      sub.tmp = tmpp[match(diet.ts, sub.ts),3]
       
       sub.tmp.tmp = scale(sub.tmp, center = T, scale = T)
       
-      dat.out[[i]] = sub.tmp.tmp[match(paste(y.tmp[,1], y.tmp[,2]), sub.ts)]
+      dat.out[[1]] = sub.tmp.tmp[match(paste(y.tmp[,1], y.tmp[,2]), sub.ts)]
+      
+      d.dat.7 = do.call(cbind, dat.out) 
+      
+      # there are some non matches that result in NA, I think these are from when
+      # a taxa doesn't occur in a given site, trip (I hope ;), NEED TO CHECK THIS...
+      d.dat.7[is.na(d.dat.7)] = 0
+      
+      mass = as.vector(d.dat.7)
+      
     }
-    
-    d.dat.7 = do.call(cbind, dat.out) 
-    
-    # there are some non matches that result in NA, I think these are from when
-    # a taxa doesn't occur in a given site, trip (I hope ;)
-    d.dat.7[is.na(d.dat.7)] = 0
-    
-    mass = d.dat.7
-    
-    
     
     #-----------------------------------------------------------------------------#
     # RBT density 
@@ -538,7 +568,7 @@ model.set.up.no.worms.turb = function(model.name = NULL){
                    sz = measure,  u_idx = u.idx, u_idx2 = u.idx2,
                    avg_log_len = avg.log.measure,
                    turb = turb, mass = mass, trout = trout, conc = conc,
-                   fish_sz = fish_sz,
+                   fish_sz = fish_sz, fish_sz_st = fish_sz_st,
                    turb_pmr = turb.pmr, comp = comp)  
     
     return(data.in)  
